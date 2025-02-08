@@ -21,7 +21,7 @@ docker exec -it $(docker ps -a | grep jenkins | awk '{print $1}') sh
 # cat Jenkins initial password
 cat /var/jenkins_home/secrets/initialAdminPassword
 
-# or with one command with docker going to the container interactive terminal
+# or with one command 
 docker exec -it $(docker ps | grep jenkins | awk '{print $1}') sh -c 'cat /var/jenkins_home/secrets/initialAdminPassword'
 ```
 
