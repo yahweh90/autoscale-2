@@ -4,6 +4,7 @@ pipeline {
     environment {
         AWS_REGION = 'us-east-1'
         TERRAFORM_DIR = '.'
+        GITHUB_REPO_URL = 'https://github.com/SerginoDelia/autoscale-2.git'
     }
     
     options {
@@ -22,7 +23,7 @@ pipeline {
         stage('Checkout Code') {
             steps {
                 git branch: 'main', 
-                    url: 'https://github.com/derrickSh43/autoScale'
+                    url: "${GITHUB_REPO_URL}"
             }
         }
         
