@@ -1,0 +1,117 @@
+pipeline {
+    agent any
+    environment {
+        AWS_REGION = 'us-east-1'
+        TERRAFORM_DIR = '.'
+    }
+
+    options {
+        // add safety to prevent multiple executions at the same time
+        timeout(time: 1, unit: 'HOURS')
+        disableConcurrentBuilds()
+        // add warning parameter
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
+    stages {
+        stage('Warning Message') {
+            steps {
+                // display warning message
+                script {
+                    currentBuild.displayName = "${BUILD_NUMBER} - destroy infrastucture"
+                    echo "This pipeline will destroy the infrastucture in ${AWS_REGION}"
+                }
+            }
+        }
+
+        stage('Initial Approval') {
+            steps {
+                // require explicit approval to proceed with destroy
+                input message: "Are you sure you want to destroy?",
+                    ok: "Yes, Destroy",
+                    parameters: [
+                        string(name: 'CONFIRMATION_TEXT',
+                        description: 'Type "DESTROY" to confirm',
+                        trim: true)
+                    ]
+
+                script {
+                    if (params.CONFIRMATION_TEXT != 'DESTROY') {
+                        error "Destruction aborted: Confirmation text did not match 'DESTROY'"
+                    }
+                }
+            }
+        }
+
+        stage('Cleanup Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main',
+                url: 'https://github.com/SerginoDelia/autoScale/'
+            }
+        }
+
+        stage('Terraform Init and Plan Destroy') {
+            steps {
+                withAWS {
+                    sh '''
+                        terraform init
+                        terraform plan -destroy -out=tfdestroyplan
+                    '''
+                }
+            }
+        }
+
+        stage('Final Approval') {
+            steps {
+                // show plan and require final approval
+                input message: "Review the destroy plan, Do you want to destroy",
+                    ok: "Yes, Destroy"
+            }
+        }
+
+        stage('Terraform Destroy') {
+            steps {
+                withAWS {
+                    sh 'terraform apply -auto-approve tfdestroyplan'
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Cleanup terraform files
+            sh 'rm -f tfdestroyplan'
+        }
+        success {
+            echo 'Destruction completed successfully!'
+        }
+        failure {
+            echo 'Destruction failed'
+        }
+        cleanup {
+            cleanWs()
+        }
+    }
+}
+
+// define function for AWS Credentials
+
+def withAWS(Closure body) {
+    withCredentials([[
+        $class: 'AmazonWebServicesCredentialsBinding',
+        credentialsId: 'AWS_SECRET_ACCESS_KEY'
+    ]]) {
+        sh """
+            export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+            export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+            export AWS_REGION=$AWS_REGION
+        """
+    }
+}
