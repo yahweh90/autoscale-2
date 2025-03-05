@@ -3,7 +3,7 @@ pipeline {
     environment {
         AWS_REGION = 'us-east-1'
         TERRAFORM_DIR = '.'
-        GITHUB_REPO_URL = 'https://github.com/SerginoDelia/autoscale-2.git'
+        GITHUB_REPO_URL = 'https://github.com/yahweh90/autoscale-2'
     }
 
     options {
@@ -107,7 +107,7 @@ pipeline {
 def withAWS(Closure body) {
     withCredentials([[
         $class: 'AmazonWebServicesCredentialsBinding',
-        credentialsId: 'AWS_SECRET_ACCESS_KEY'
+        credentialsId: 'jenkins'
     ]]) {
         sh """
             export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
