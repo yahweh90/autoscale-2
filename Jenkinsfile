@@ -4,7 +4,7 @@ pipeline {
     environment {
         AWS_REGION = 'us-east-1'
         TERRAFORM_DIR = '.'
-        GITHUB_REPO_URL = 'https://github.com/SerginoDelia/autoscale-2.git'
+        GITHUB_REPO_URL = 'https://github.com/yahweh90/autoscale-2'
     }
     
     options {
@@ -83,5 +83,24 @@ def withAWS(Closure body) {
             export AWS_REGION=$AWS_REGION
         """
         body()
+    }
+}
+pipeline{
+    agent any
+    tools {
+        jfrog 'jfrog-cli'
+    }
+    stages {
+        stage ('Testing') {
+            steps {
+                jf '-v' 
+                jf 'c show'
+                jf 'rt ping'
+                sh 'touch test-file'
+                jf 'rt u test-file jfrog-cli/'
+                jf 'rt bp'
+                jf 'rt dl jfrog-cli/test-file'
+            }
+        } 
     }
 }
